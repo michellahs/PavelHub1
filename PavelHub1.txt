@@ -1,0 +1,275 @@
+-- https://scriptblox.com/script/Universal-Script-PavelHub-44670
+
+-- [[ Pavel Hub v2 - Clean & Stable, Rayfield Style, No Key System ]]
+
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local Window = Rayfield:CreateWindow({
+	Name = "Pavel Hub",
+	LoadingTitle = "Pavel Hub Loader",
+	LoadingSubtitle = "Pavel | Hub",
+	ConfigurationSaving = {Enabled = false},
+	Discord = {Enabled = false},
+	KeySystem = false,
+})
+
+-- Services
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+-- Tabs
+local MainTab = Window:CreateTab("Main", 4483362458)
+local UtilityTab = Window:CreateTab("Utility", 4483362458)
+
+------------------------------------------
+-- ESP
+------------------------------------------
+local ESPEnabled = false
+local Boxes = {}
+
+MainTab:CreateToggle({
+	Name = "ESP",
+	CurrentValue = false,
+	Callback = function(Value)
+		ESPEnabled = Value
+		if not Value then
+			for _, b in pairs(Boxes) do
+				for _, d in pairs(b) do d:Remove() end
+			end
+			Boxes = {}
+		end
+	end
+})
+
+RunService.RenderStepped:Connect(function()
+	if not ESPEnabled then return end
+	for _, target in ipairs(Players:GetPlayers()) do
+		if target ~= Player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+			if not Boxes[target] then
+				local box = Drawing.new("Square")
+				box.Color = Color3.fromRGB(0, 255, 0)
+				box.Thickness = 2
+				box.Filled = false
+				Boxes[target] = {box}
+			end
+			local hrp = target.Character.HumanoidRootPart
+			local pos, onscreen = Camera:WorldToViewportPoint(hrp.Position)
+			local size = Vector2.new(60, 100)
+			local box = Boxes[target][1]
+			if onscreen then
+				box.Visible = true
+				box.Size = size
+				box.Position = Vector2.new(pos.X - size.X / 2, pos.Y - size.Y / 2)
+			else
+				box.Visible = false
+			end
+		else
+			if Boxes[target] then
+				for _, d in pairs(Boxes[target]) do d:Remove() end
+				Boxes[target] = nil
+			end
+		end
+	end
+end)
+
+------------------------------------------
+-- Speed
+------------------------------------------
+local SpeedOn = false
+local WalkSpeed = 60
+
+MainTab:CreateSlider({
+	Name = "Speed Value",
+	Range = {16, 200},
+	Increment = 5,
+	CurrentValue = WalkSpeed,
+	Callback = function(Value) WalkSpeed = Value end
+})
+
+MainTab:CreateToggle({
+	Name = "Speed",
+	CurrentValue = false,
+	Callback = function(Value)
+		SpeedOn = Value
+	end
+})
+
+RunService.Heartbeat:Connect(function()
+	if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+		local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+		hum.WalkSpeed = SpeedOn and WalkSpeed or 16
+	end
+end)
+
+------------------------------------------
+-- Jump
+------------------------------------------
+local JumpOn = false
+local JumpPower = 100
+
+MainTab:CreateSlider({
+	Name = "Jump Power",
+	Range = {50, 300},
+	Increment = 10,
+	CurrentValue = JumpPower,
+	Callback = function(Value) JumpPower = Value end
+})
+
+MainTab:CreateToggle({
+	Name = "Jump",
+	CurrentValue = false,
+	Callback = function(Value)
+		JumpOn = Value
+	end
+})
+
+RunService.Heartbeat:Connect(function()
+	if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+		local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+		hum.JumpPower = JumpOn and JumpPower or 50
+	end
+end)
+
+------------------------------------------
+-- Noclip
+------------------------------------------
+local NoclipOn = false
+
+MainTab:CreateToggle({
+	Name = "Noclip",
+	CurrentValue = false,
+	Callback = function(Value)
+		NoclipOn = Value
+	end
+})
+
+RunService.Stepped:Connect(function()
+	if NoclipOn and Player.Character then
+		for _, v in ipairs(Player.Character:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.CanCollide = false
+			end
+		end
+	end
+end)
+
+------------------------------------------
+-- Teleport to Player
+------------------------------------------
+UtilityTab:CreateInput({
+	Name = "Teleport to Player",
+	PlaceholderText = "Player Name",
+	RemoveTextAfterFocusLost = true,
+	Callback = function(Value)
+		local Target = Players:FindFirstChild(Value)
+		if Target and Target.Character and Target.Character:FindFirstChild("HumanoidRootPart") then
+			local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+			if myHRP then
+				myHRP.CFrame = Target.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+			end
+		else
+			Rayfield:Notify({
+				Title = "Teleport Failed",
+				Content = "Player not found or no HumanoidRootPart.",
+				Duration = 4
+			})
+		end
+	end
+})
+
+------------------------------------------
+-- Anti-AFK
+------------------------------------------
+UtilityTab:CreateButton({
+	Name = "Enable Anti-AFK",
+	Callback = function()
+		local vu = game:GetService("VirtualUser")
+		Player.Idled:Connect(function()
+			vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+			task.wait(1)
+			vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+		end)
+		Rayfield:Notify({
+			Title = "Anti-AFK",
+			Content = "Anti-AFK Enabled.",
+			Duration = 4
+		})
+	end
+})
+
+------------------------------------------
+-- God Mode
+------------------------------------------
+UtilityTab:CreateButton({
+	Name = "Activate God Mode",
+	Callback = function()
+		local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.Name = "GodHumanoid"
+			local clone = hum:Clone()
+			clone.Parent = Player.Character
+			clone.Name = "Humanoid"
+			task.wait()
+			hum:Destroy()
+			Player.Character:FindFirstChild("HumanoidRootPart").Anchored = false
+			Rayfield:Notify({
+				Title = "God Mode",
+				Content = "God Mode Attempted.",
+				Duration = 4
+			})
+		end
+	end
+})
+
+------------------------------------------
+-- TP Tool
+------------------------------------------
+UtilityTab:CreateButton({
+	Name = "Get TP Tool",
+	Callback = function()
+		if not Player.Backpack:FindFirstChild("TP Tool") then
+			local tool = Instance.new("Tool")
+			tool.RequiresHandle = false
+			tool.Name = "TP Tool"
+			local mouse = Player:GetMouse()
+			tool.Activated:Connect(function()
+				if mouse then
+					local pos = mouse.Hit.Position + Vector3.new(0, 3, 0)
+					Player.Character:MoveTo(pos)
+				end
+			end)
+			tool.Parent = Player.Backpack
+			Rayfield:Notify({
+				Title = "TP Tool",
+				Content = "Teleport Tool added to Backpack.",
+				Duration = 4
+			})
+		else
+			Rayfield:Notify({
+				Title = "TP Tool",
+				Content = "You already have the TP Tool.",
+				Duration = 4
+			})
+		end
+	end
+})
+
+------------------------------------------
+-- Infinite Yield
+------------------------------------------
+UtilityTab:CreateButton({
+	Name = "Load Infinite Yield",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+	end
+})
+
+------------------------------------------
+Rayfield:Notify({
+	Title = "Pavel Hub Loaded",
+	Content = "✅ All tools ready! Enjoy, Pavel.",
+	Duration = 5
+})
